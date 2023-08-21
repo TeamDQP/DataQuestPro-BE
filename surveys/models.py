@@ -9,10 +9,6 @@ class Category(models.Model):
     name = models.CharField(max_length=255)
 
 
-class Tag(models.Model):
-    name = models.CharField(max_length=255)
-
-
 class Survey(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     title = models.CharField(max_length=255)
@@ -21,7 +17,12 @@ class Survey(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     is_done = models.BooleanField(default=False)
     category = models.ForeignKey(Category, on_delete=models.CASCADE)
-    tags = models.ManyToManyField(Tag)
+
+
+class Tag(models.Model):
+    survey = models.ForeignKey(Survey, on_delete=models.CASCADE)
+    name = models.CharField(max_length=255)
+    writer = models.ForeignKey(User, on_delete=models.CASCADE)
 
 
 class Question(models.Model):
