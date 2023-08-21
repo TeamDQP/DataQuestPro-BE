@@ -1,6 +1,6 @@
 from django.apps import AppConfig
 
 
-class ServeysConfig(AppConfig):
+class SurveysConfig(AppConfig):
     default_auto_field = 'django.db.models.BigAutoField'
-    name = 'serveys'
+    name = 'surveys'
