@@ -11,5 +11,6 @@ app_name = 'user'
 urlpatterns = [
     path('login/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('login/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+    path('validate-jwt/', views.JWTValidationView.as_view(), name='validate-jwt'),
     path('logout/', views.LogoutView.as_view(), name='logout'),
 ]
