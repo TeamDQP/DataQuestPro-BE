@@ -43,11 +43,12 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'serveys',
+    'surveys',
     'user',
     'notification',
     'rest_framework',
     'rest_framework_simplejwt',
+    'rest_framework_simplejwt.token_blacklist',
 ]
 
 MIDDLEWARE = [
@@ -98,7 +99,6 @@ REST_FRAMEWORK = {
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 
-print(os.environ.get('DB_PASS'))
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
