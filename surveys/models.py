@@ -14,7 +14,6 @@ class Tag(models.Model):
 
 
 class Survey(models.Model):
-    id = models.AutoField(primary_key=True)
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     title = models.CharField(max_length=255)
     intro = models.TextField()
