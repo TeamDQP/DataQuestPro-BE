@@ -11,11 +11,22 @@ from .serializers import SurveySerializer, CategorySerializer, TagSerializer, Qu
 class SurveyCreate(APIView):
 
     def post(self, request):
-        serializer = SurveySerializer(data=request.data)
-        if serializer.is_valid():
-            serializer.save(user=self.request.user)  # 현재 로그인한 사용자를 Survey의 user 필드에 연결
-            return Response(serializer.data, status=201)
-        return Response(serializer.errors, status=400)
+        survey_serializer = SurveySerializer(data=request.data)
+        if survey_serializer.is_valid():
+            survey_instance = survey_serializer.save(user=self.request.user)
+            
+            questions_data = request.data.get('questions')
+            
+            for question_data in questions_data:
+                question_data['survey'] = survey_instance.id
+                question_serializer = QuestionSerializer(data=question_data)
+                if question_serializer.is_valid():
+                    question_serializer.save()
+                else:
+                    return Response(question_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            
+            return Response(survey_serializer.data, status=status.HTTP_201_CREATED)
+        return Response(survey_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 class SurveyDetail(APIView):
@@ -52,6 +63,45 @@ class SurveyDelete(APIView):
         except Survey.DoesNotExist:
             return Response({"message": "삭제하려는 설문이 존재하지 않습니다"}, status=404)
     
+
+class SurveyUpdate(APIView):
+
+    def post(self, request, pk):
+        try:
+            survey_instance = Survey.objects.get(pk=pk)
+        except Survey.DoesNotExist:
+            return Response({"message": "업데이트할 설문이 존재하지 않습니다"}, status=status.HTTP_404_NOT_FOUND)
+
+        serializer = SurveySerializer(survey_instance, data=request.data)
+
+        if serializer.is_valid():
+            # 설문 업데이트
+            updated_survey = serializer.save()
+
+            # 질문 데이터 처리
+            questions_data = request.data.get('questions')
+            if questions_data:
+                for question_data in questions_data:
+                    question_id = question_data.get('id')  # 질문의 기존 ID를 가져옴 (기존 질문 업데이트용)
+                    if question_id:
+                        question_instance = Question.objects.get(id=question_id)
+                        question_serializer = QuestionSerializer(question_instance, data=question_data)
+                        if question_serializer.is_valid():
+                            question_serializer.save()
+                        else:
+                            return Response(question_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+                    else:
+                        question_data['survey'] = updated_survey.id
+                        question_serializer = QuestionSerializer(data=question_data)
+                        if question_serializer.is_valid():
+                            question_serializer.save()
+                        else:
+                            return Response(question_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        else:
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        
 
 ### category
 class CategoryCreate(APIView):
