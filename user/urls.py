@@ -13,4 +13,8 @@ urlpatterns = [
     path('login/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     path('validate-jwt/', views.JWTValidationView.as_view(), name='validate-jwt'),
     path('logout/', views.LogoutView.as_view(), name='logout'),
+    path('profile/write/', views.ProfileWrite.as_view(), name='profile-write'),
+    path('profile/read/', views.ProfileRead.as_view(), name='profile-read'),
+    path('profile/update/', views.ProfileUpdate.as_view(), name='profile-update'),
+    path('profile/delete/', views.ProfileDelete.as_view(), name='profile-delete'),
 ]
