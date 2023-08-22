@@ -2,8 +2,9 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
-from .serializers import UserSerializer
+from .serializers import UserSerializer, ProfileSerializer
 from rest_framework_simplejwt.tokens import RefreshToken, AccessToken
+from .models import Profile
 
 
 class RegisterView(APIView):
@@ -42,25 +43,36 @@ class JWTValidationView(APIView):
             return Response({'error': 'Invalid token'}, status=status.HTTP_401_UNAUTHORIZED)
 
 
-
 class ProfileWrite(APIView):
-    # def get():
-    #     pass # url로 이동
+    permission_classes = (IsAuthenticated,)
+
     def post(self, request):
-        user = request.data.get('user') # request.user
-        image = request.data.get('image')
-        username = request.data.get('username')
-        profile = Profile.objects.create(user_id=user, profileimage=image, username=username)
-        serializer = ProfileSerializer(profile)
+        # user = request.data.get('user')
+        # image = request.data.get('image')
+        # username = request.data.get('username')
+        serializer = ProfileSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save(user=request.user)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
+class ProfileRead(APIView):
+    permission_classes = (IsAuthenticated,)
 
-class ProfileUpdate(APIView):
     def get(self, request):
         profile = Profile.objects.get(user=request.user)
         serializer = ProfileSerializer(profile)
-        return Response(serializer.data)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class ProfileUpdate(APIView):
+    permission_classes = (IsAuthenticated,)
+
+    def get(self, request):
+        profile = Profile.objects.get(user=request.user)
+        serializer = ProfileSerializer(profile)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     def post(self, request):
         profile = Profile.objects.get(user=request.user)
@@ -69,3 +81,12 @@ class ProfileUpdate(APIView):
             serializer.save()
             return Response(serializer.data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class ProfileDelete(APIView):
+    permission_classes = (IsAuthenticated,)
+
+    def post(self, request):  # request 안에 user가 있으므로 pk가 필요없음.
+        profile = Profile.objects.get(user=request.user)
+        profile.delete()
+        return Response(status=status.HTTP_404_NOT_FOUND)
