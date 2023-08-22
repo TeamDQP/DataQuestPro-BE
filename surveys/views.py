@@ -2,6 +2,8 @@ from django.shortcuts import render
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
+from django.shortcuts import get_object_or_404
+from django.contrib.auth import authenticate
 from django.db.models import Prefetch
 from .models import Survey, Category, Tag, Question, Answer
 from .serializers import SurveySerializer, CategorySerializer, TagSerializer, QuestionSerializer, AnswerSerializer
@@ -56,12 +58,18 @@ class SurveyDetail(APIView):
 class SurveyDelete(APIView):
 
     def post(self, request, pk):
-        try:
-            survey_to_delete = Survey.objects.get(pk=pk)
-            survey_to_delete.delete()
-            return Response({"message": "설문 삭제가 완료되었습니다"}, status=200)
-        except Survey.DoesNotExist:
-            return Response({"message": "삭제하려는 설문이 존재하지 않습니다"}, status=404)
+
+        survey_to_delete = get_object_or_404(Survey, pk=pk, created_by=request.user)
+
+        password = request.data.get("password")
+
+        user = authenticate(username=request.user.username, password=password)
+        
+        if not user:
+            return Response({"message": "비밀번호가 일치하지 않습니다"}, status=400)
+        
+        survey_to_delete.delete()
+        return Response({"message": "설문 삭제가 완료되었습니다"}, status=200)
     
 
 class SurveyUpdate(APIView):
