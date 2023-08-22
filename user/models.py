@@ -51,7 +51,8 @@ class User(AbstractUser):
 
 class Profile(models.Model):
     id = models.AutoField(primary_key=True)
-    user_id = models.OneToOneField(User, on_delete=models.CASCADE)
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
     username = models.CharField(max_length=255)
-    profileimage = models.CharField(max_length=255)
+    profileimage = models.ImageField(
+        upload_to='profile', null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
