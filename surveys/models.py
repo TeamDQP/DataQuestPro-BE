@@ -23,6 +23,7 @@ class Survey(models.Model):
     is_done = models.BooleanField(default=False)
     category = models.ForeignKey(Category, on_delete=models.CASCADE)
     tags = models.ManyToManyField('Tag', related_name='surveys')
+    views = models.IntegerField(default=0)
 
 
 class Question(models.Model):
