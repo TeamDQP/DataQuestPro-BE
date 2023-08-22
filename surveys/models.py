@@ -35,9 +35,16 @@ class Question(models.Model):
     ]
     type = models.CharField(max_length=10, choices=QUESTION_TYPES)
     is_required = models.BooleanField(default=False)
+    question_text = models.TextField()
 
 
 class Answer(models.Model):
     question = models.ForeignKey(Question, on_delete=models.CASCADE)
-    point = models.IntegerField(null=True, blank=True)  # '척도형 점수'
-    body = models.TextField(null=True, blank=True)     # '서술형 응답'
+    answer_text = models.TextField()
+
+class UserAnswer(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    survey = models.ForeignKey(Survey, on_delete=models.CASCADE)
+    question = models.ForeignKey(Question, on_delete=models.CASCADE)
+    answer_point = models.ForeignKey(Answer, on_delete=models.CASCADE, null=True, blank=True)
+    answer_text = models.TextField(blank=True)
