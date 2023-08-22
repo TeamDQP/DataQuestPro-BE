@@ -40,3 +40,32 @@ class JWTValidationView(APIView):
             return Response('Token Validated', status=status.HTTP_200_OK)
         except Exception as e:
             return Response({'error': 'Invalid token'}, status=status.HTTP_401_UNAUTHORIZED)
+
+
+
+class ProfileWrite(APIView):
+    # def get():
+    #     pass # url로 이동
+    def post(self, request):
+        user = request.data.get('user') # request.user
+        image = request.data.get('image')
+        username = request.data.get('username')
+        profile = Profile.objects.create(user_id=user, profileimage=image, username=username)
+        serializer = ProfileSerializer(profile)
+
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+
+class ProfileUpdate(APIView):
+    def get(self, request):
+        profile = Profile.objects.get(user=request.user)
+        serializer = ProfileSerializer(profile)
+        return Response(serializer.data)
+
+    def post(self, request):
+        profile = Profile.objects.get(user=request.user)
+        serializer = ProfileSerializer(profile, data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
