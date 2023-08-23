@@ -10,7 +10,27 @@ from django.utils.html import strip_tags
 from .email_templates import purposes
 
 
-class SendEmailView(APIView):    
+class SendEmailView(APIView):
+    def test_send(self, purpose, targets, names):
+        with get_connection(
+            host=settings.EMAIL_HOST,
+            port=settings.EMAIL_PORT,
+            username=settings.EMAIL_HOST_USER,
+            password=settings.EMAIL_HOST_PASSWORD,
+            use_tls=settings.EMAIL_USE_TLS
+            ) as connection:
+            title = purposes[purpose]['title']
+            body1 = purposes[purpose]['body1']
+            body2 = purposes[purpose]['body2']
+            body = body1 + names[0] + body2
+            from_email = settings.EMAIL_HOST_NAME + '<' + settings.EMAIL_HOST_USER + '>'    # "Fred" <fred@example.com>
+            recipient_list = targets.split()    # 수신인 목록(list or tuple)
+            
+            if EmailMessage(subject=title, body=body, to=recipient_list, from_email=from_email, connection=connection).\
+            send(fail_silently=True):
+                return True
+            return False
+    
     def post(self, request):
         permission_classes = (IsAuthenticated,)
         email_serializer = EmailRecordSerializer(data=request.data)
@@ -24,9 +44,10 @@ class SendEmailView(APIView):
                 ) as connection:
                 purpose = request.data.get('purpose')
                 # title = request.data.get('title')   # 이메일 제목
-                title = purposes[purpose][title]
+                title = purposes[purpose]['title']
                 # body = request.data.get('body')   # 본문 내용
-                body = purposes[purpose][body]
+                body1 = purposes[purpose]['body1']
+                body2 = purposes[purpose]['body2']
                 recipient_list = request.data.get('targets').split()    # 수신인 목록(list or tuple)
                 from_email = settings.EMAIL_HOST_NAME + '<' + settings.EMAIL_HOST_USER + '>'    # "Fred" <fred@example.com>
                 try:
