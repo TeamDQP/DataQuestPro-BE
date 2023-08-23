@@ -50,9 +50,9 @@ def survey_create_email(sender, instance, created, **kwargs):
 
 @receiver(pre_save, sender=Survey)
 def survey_close_email(sender, instance, **kwargs):
-    print(sender.objects.get(id=instance.id).is_done)
-    print(instance.is_done)
     if instance.is_done:
+        print(sender.objects.get(id=instance.id).is_done)
+        print(instance.is_done)
         with get_connection(
                 host=settings.EMAIL_HOST,
                 port=settings.EMAIL_PORT,
@@ -67,8 +67,8 @@ def survey_close_email(sender, instance, **kwargs):
                 targets.add(useranswer.user.email)
 
             email = EmailMessage(
-                subject='title',
-                body='body',
+                subject=instance.title + 'is done',
+                body='zz',
                 from_email=settings.EMAIL_HOST_USER,
                 to=list(targets),
                 connection=connection)
