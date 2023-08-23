@@ -6,21 +6,57 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.shortcuts import get_object_or_404
 from django.contrib.auth import authenticate
 from django.db.models import Prefetch
-from .models import Survey, Category, Tag, Question, Answer
+from .models import Survey, Category, Tag, Question, AnswerOption
 from .serializers import SurveySerializer, CategorySerializer, TagSerializer, QuestionSerializer, AnswerSerializer
 
 # Create your views here.
 ### Survey
+class IndexMain(APIView):
+
+    def get(self, request):
+        surveys = Survey.objects.all().select_related('category', 'user')
+
+        processed_surveys = []
+        
+        for survey in surveys:
+            processed_survey = {
+                'id': survey.id,
+                'user': survey.user.email,
+                'title': survey.title,
+                'intro': survey.intro,
+                'created_at': survey.created_at,
+                'updated_at': survey.updated_at,
+                'is_done': survey.is_done,
+                'category': survey.category.name if survey.category else '',
+                'tags': [tag.name for tag in survey.tags.all()],
+                'views': survey.views,
+            }
+            processed_surveys.append(processed_survey)
+
+        return Response(processed_surveys, status=status.HTTP_200_OK)
+    
+
 class SurveyCreate(APIView):
 
+    def get(self,request):
+        category = Category.objects.all()
+        category_serializer = CategorySerializer(category)
+
+        return Response(category_serializer, status=status.HTTP_200_OK)
+    
     def post(self, request):
+        user = authenticate(email='test123@gmail.com', password='test123')
+        request.data['user'] = user.id
+        self.request.user = authenticate(email='test123@gmail.com', password='test123')
         survey_serializer = SurveySerializer(data=request.data)
         if survey_serializer.is_valid():
             survey_instance = survey_serializer.save(user=self.request.user)
             
+            print(request.data)
             questions_data = request.data.get('questions')
             
             for question_data in questions_data:
+                print(survey_instance.id)
                 question_data['survey'] = survey_instance.id
                 question_serializer = QuestionSerializer(data=question_data)
                 if question_serializer.is_valid():
@@ -50,7 +86,7 @@ class SurveyDetail(APIView):
         questions = survey.question_set.all()
         serialized_questions = QuestionSerializer(questions, many=True).data
 
-        answers = Answer.objects.filter(question__survey=survey)
+        answers = AnswerOption.objects.filter(question__survey=survey)
         serialized_answers = AnswerSerializer(answers, many=True).data
 
         data = {
@@ -118,7 +154,7 @@ class SurveyUpdate(APIView):
                 for answer_data in answers_data:
                     answer_id = answer_data.get('id')
                     if answer_id:
-                        answer_instance = Answer.objects.get(id=answer_id)
+                        answer_instance = AnswerOption.objects.get(id=answer_id)
                         answer_serializer = AnswerSerializer(answer_instance, data=answer_data)
                         if answer_serializer.is_valid():
                             answer_serializer.save()
