@@ -11,7 +11,6 @@ class Category(models.Model):
 
 class Tag(models.Model):
     name = models.CharField(max_length=255)
-    writer = models.ForeignKey(User, on_delete=models.CASCADE)
 
 
 class Survey(models.Model):
@@ -20,9 +19,10 @@ class Survey(models.Model):
     intro = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    # enddated_at 추가
     is_done = models.BooleanField(default=False)
-    category = models.ForeignKey(Category, on_delete=models.CASCADE)
-    tags = models.ManyToManyField('Tag', related_name='surveys')
+    category = models.ForeignKey(Category, on_delete=models.CASCADE, null=True, blank=True)
+    tags = models.ManyToManyField('Tag', related_name='surveys', null=True, blank=True)
     views = models.IntegerField(default=0)
 
 
@@ -38,13 +38,15 @@ class Question(models.Model):
     question_text = models.TextField()
 
 
-class Answer(models.Model):
+class AnswerOption(models.Model):
     question = models.ForeignKey(Question, on_delete=models.CASCADE)
     answer_text = models.TextField()
+
 
 class UserAnswer(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     survey = models.ForeignKey(Survey, on_delete=models.CASCADE)
+
     question = models.ForeignKey(Question, on_delete=models.CASCADE)
-    answer_point = models.ForeignKey(Answer, on_delete=models.CASCADE, null=True, blank=True)
+    answer_point = models.ForeignKey(AnswerOption, on_delete=models.CASCADE, null=True, blank=True)
     answer_text = models.TextField(blank=True)
