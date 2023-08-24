@@ -45,9 +45,11 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'surveys',
     'user',
+    'notification.apps.BaseConfig',
     'rest_framework',
     'rest_framework_simplejwt',
     'rest_framework_simplejwt.token_blacklist',
+    'allauth'
 ]
 
 MIDDLEWARE = [
@@ -155,3 +157,16 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'static/media')
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+
+# Email Field
+
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = os.environ.get('EMAIL_HOST')
+EMAIL_USE_TLS = True  # 보안연결 TLS
+EMAIL_PORT = 587
+EMAIL_HOST_NAME = 'TeamDQP'
+EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER')
+EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD')
+DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
+EMAIL_TEST_TARGET = os.environ.get('EMAIL_TEST_TARGET')

@@ -4,8 +4,9 @@ from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from .serializers import UserSerializer, ProfileSerializer
 from rest_framework_simplejwt.tokens import RefreshToken, AccessToken
-from .models import Profile, User
-
+from .models import Profile
+from django.contrib.auth import get_user_model
+User = get_user_model()
 
 class RegisterView(APIView):
     def post(self, request):
@@ -41,6 +42,20 @@ class JWTValidationView(APIView):
             return Response('Token Validated', status=status.HTTP_200_OK)
         except Exception as e:
             return Response({'error': 'Invalid token'}, status=status.HTTP_401_UNAUTHORIZED)
+
+
+
+class EmailVerification(APIView):
+    def get(self, request, pk):
+        try:
+            user = User.objects.get(pk=pk)
+            if user.is_sleeping:
+                user.is_sleeping = False
+                user.save()
+                return Response('wake', status=status.HTTP_200_OK)
+            return Response('Email has already been verified.', status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            return Response({'error':e}, status=status.HTTP_400_BAD_REQUEST)
 
 
 class UserUpdate(APIView):

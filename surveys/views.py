@@ -3,8 +3,8 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from django.db.models import Prefetch
-from .models import Survey, Category, Tag, Question, Answer
-from .serializers import SurveySerializer, CategorySerializer, TagSerializer, QuestionSerializer, AnswerSerializer
+from .models import Survey, Category, Tag, Question, AnswerOption
+from .serializers import SurveySerializer, CategorySerializer, TagSerializer, QuestionSerializer, AnswerOptionSerializer
 
 # Create your views here.
 ### Survey
@@ -38,7 +38,7 @@ class SurveyDetail(APIView):
             return Response({"error": "설문이 존재하지 않습니다"}, status=404)
 
         questions = survey.question_set.prefetch_related(
-            Prefetch('answer_set', queryset=Answer.objects.select_related('question'))
+            Prefetch('answeroption_set', queryset=AnswerOption.objects.select_related('question'))
         ).all()
 
         serialized_questions = QuestionSerializer(questions, many=True).data
