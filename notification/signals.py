@@ -85,8 +85,10 @@ def survey_close_email(sender, instance, **kwargs):
             useranswers = instance.useranswer_set.all()
             targets = set()
             for useranswer in useranswers:
-                targets.add(useranswer.user.email)
-
+                if useranswer.user.email_opt_in:
+                    targets.add(useranswer.user.email)
+                else:
+                    continue
             email = EmailMessage(
                 subject=instance.title + 'is done',
                 body='zz',

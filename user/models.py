@@ -36,6 +36,7 @@ class User(AbstractUser):
     is_superuser = models.BooleanField(default=False)
     is_active = models.BooleanField(default=True)   # 회원 탈퇴 시에만 False
     is_sleeping = models.BooleanField(default=True) # 휴면 상태면 True / 이메일 인증 시 False
+    email_opt_in = models.BooleanField(default=True)
     last_login = models.DateTimeField(null=True, blank=True)
     date_joined = models.DateTimeField(auto_now_add=True)
     
