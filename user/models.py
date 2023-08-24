@@ -38,7 +38,7 @@ class User(AbstractUser):
     is_sleeping = models.BooleanField(default=True) # 휴면 상태면 True / 이메일 인증 시 False
     last_login = models.DateTimeField(null=True, blank=True)
     date_joined = models.DateTimeField(auto_now_add=True)
-
+    
     # username을 email로 해주겠다.
     USERNAME_FIELD = 'email'
     EMAIL_FIELD = 'email'

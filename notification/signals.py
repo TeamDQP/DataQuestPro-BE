@@ -7,10 +7,31 @@ from surveys.models import Survey
 
 User = get_user_model()
 
+@receiver(post_save, sender=User)
+def send_verification_email(sender, instance, created, **kwargs):
+    if created and instance.is_sleeping:
+        # 최초 생성 시, 이메일 인증(verification)
+        with get_connection(
+                host=settings.EMAIL_HOST,
+                port=settings.EMAIL_PORT,
+                username=settings.EMAIL_HOST_USER,
+                password=settings.EMAIL_HOST_PASSWORD,
+                use_tls=settings.EMAIL_USE_TLS
+        ) as connection:
+
+            verification_link = f'http://127.0.0.1:8000/user/verify/{instance.pk}'
+            email = EmailMessage(
+                subject='Email Verification for Your Account',
+                body=f'Please click the link below to verify your email address:\n\n{verification_link}',
+                from_email=settings.EMAIL_HOST_USER,
+                to=[instance.email],
+                connection=connection)
+            email.send()
 
 @receiver(post_save, sender=User)
 def send_register_email(sender, instance, created, **kwargs):
-    if created:
+    if not instance.is_sleeping:
+        # 이메일 인증 이후 환영 메시지
         with get_connection(
                 host=settings.EMAIL_HOST,
                 port=settings.EMAIL_PORT,
@@ -20,8 +41,8 @@ def send_register_email(sender, instance, created, **kwargs):
         ) as connection:
 
             email = EmailMessage(
-                subject='title',
-                body='body',
+                subject='Welcome to Data Quest Pro!',
+                body=f'Welcome, {instance.name}!\n\nThank you for your regesteration.',
                 from_email=settings.EMAIL_HOST_USER,
                 to=[instance.email],
                 connection=connection)
