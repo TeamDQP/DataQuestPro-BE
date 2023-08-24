@@ -14,6 +14,7 @@ from .serializers import SurveySerializer, CategorySerializer, TagSerializer, Qu
 class IndexMain(APIView):
 
     def get(self, request):
+        # order by 추가예정
         surveys = Survey.objects.all().select_related('category', 'user')
 
         processed_surveys = []
@@ -36,6 +37,7 @@ class IndexMain(APIView):
         return Response(processed_surveys, status=status.HTTP_200_OK)
     
 
+# 테스트 1차 성공
 class SurveyCreate(APIView):
 
     def get(self,request):
@@ -45,12 +47,14 @@ class SurveyCreate(APIView):
         return Response(serializer.data, status=status.HTTP_200_OK)
     
     def post(self, request):
+        # USER 임시 데이터
         user = authenticate(email='test123@gmail.com', password='test123')
         request.data['user'] = user.id
         self.request.user = authenticate(email='test123@gmail.com', password='test123')
-        tags_data = request.data.get('tags')  # Assuming tags data is sent in the request
+
+        # 태그 데이터 저장
+        tags_data = request.data.get('tags')
             
-        # Create and associate tags
         if tags_data:
             tags = []
             for tag_name in tags_data:
@@ -63,6 +67,7 @@ class SurveyCreate(APIView):
         if survey_serializer.is_valid():
             survey_instance = survey_serializer.save(user=self.request.user)
             
+            # 질문 데이터 저장
             questions_data = request.data.get('questions')
             
             for question_data in questions_data:
@@ -84,6 +89,7 @@ class SurveyCreate(APIView):
         return Response(survey_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
+#  테스트 1차 테스트 O (데이터 표출)
 class SurveyDetail(APIView):
 
     def get(self, request, pk):
@@ -92,6 +98,7 @@ class SurveyDetail(APIView):
         except ObjectDoesNotExist:
             return Response({"error": "설문이 존재하지 않습니다"}, status=status.HTTP_404_NOT_FOUND)
         
+        # 조회수 증가
         survey.views += 1
         survey.save()
 
@@ -114,11 +121,10 @@ class SurveyDetail(APIView):
         return Response(data)
 
 
-
+## 테스트 X
 class SurveyDelete(APIView):
 
     def post(self, request, pk):
-
         survey_to_delete = get_object_or_404(Survey, pk=pk, created_by=request.user)
 
         password = request.data.get("password")
@@ -132,6 +138,7 @@ class SurveyDelete(APIView):
         return Response({"message": "설문 삭제가 완료되었습니다"}, status=200)
     
 
+## 테스트 X
 class SurveyUpdate(APIView):
 
     def post(self, request, pk):
@@ -194,7 +201,7 @@ class UserAnswerView(APIView):
         user = authenticate(email='test123@gmail.com', password='test123')
         request.data['user'] = user.id
         self.request.user = authenticate(email='test123@gmail.com', password='test123')
-        user = request.user  # Assuming you have authentication configured
+        user = request.user
         survey_id = request.data.get('survey_id')
         answers = request.data.get('answers', [])
 
@@ -211,7 +218,7 @@ class UserAnswerView(APIView):
             try:
                 question = Question.objects.get(pk=question_id)
             except Question.DoesNotExist:
-                continue  # Skip invalid questions
+                continue
 
             user_answer, created = UserAnswer.objects.get_or_create(
                 user=user,
@@ -224,32 +231,11 @@ class UserAnswerView(APIView):
                     answer_option = AnswerOption.objects.get(pk=answer_option_id)
                     user_answer.answer_point = answer_option
                 except AnswerOption.DoesNotExist:
-                    pass  # Skip invalid answer options
-
+                    pass  
+            
             if answer_text:
                 user_answer.answer_text = answer_text
 
             user_answer.save()
 
         return Response({"message": "답변이 저장되었습니다."}, status=status.HTTP_201_CREATED)
-    
-### category
-class CategoryCreate(APIView):
-
-    def post(slef, request):
-        serializer = CategorySerializer(data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data, status=201)
-        return Response(serializer.errors, status=400)
-    
-
-### Tag
-class TagCreate(APIView):
-
-    def post(slef, request):
-        serializer = TagSerializer(data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data, status=201)
-        return Response(serializer.errors, status=400)
