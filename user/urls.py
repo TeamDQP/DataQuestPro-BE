@@ -14,6 +14,7 @@ urlpatterns = [
     path('validate-jwt/', views.JWTValidationView.as_view(), name='validate-jwt'),
     path('verify/<int:pk>', views.EmailVerification.as_view(), name='verify'),
     path('logout/', views.LogoutView.as_view(), name='logout'),
+    path('update/', views.UserUpdate.as_view(), name='update'),
     path('profile/write/', views.ProfileWrite.as_view(), name='profile-write'),
     path('profile/read/', views.ProfileRead.as_view(), name='profile-read'),
     path('profile/update/', views.ProfileUpdate.as_view(), name='profile-update'),

@@ -44,6 +44,7 @@ class JWTValidationView(APIView):
             return Response({'error': 'Invalid token'}, status=status.HTTP_401_UNAUTHORIZED)
 
 
+
 class EmailVerification(APIView):
     def get(self, request, pk):
         try:
@@ -55,6 +56,23 @@ class EmailVerification(APIView):
             return Response('Email has already been verified.', status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
             return Response({'error':e}, status=status.HTTP_400_BAD_REQUEST)
+
+
+class UserUpdate(APIView):
+    permission_classes = (IsAuthenticated,)
+
+    def get(self, request):
+        user = User.objects.get(email=request.user)
+        serializer = UserSerializer(user)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    def post(self, request):
+        user = User.objects.get(email=request.user)
+        serializer = UserSerializer(user, data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 class ProfileWrite(APIView):
@@ -93,7 +111,7 @@ class ProfileUpdate(APIView):
         serializer = ProfileSerializer(profile, data=request.data)
         if serializer.is_valid():
             serializer.save()
-            return Response(serializer.data)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
