@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import SurveyCreate, SurveyDetail, SurveyDelete, CategoryCreate, TagCreate, IndexMain, UserAnswerView
+from .views import SurveyCreate, SurveyDetail, SurveyDelete, IndexMain, UserAnswerView
 
 app_name = 'surveys'
 
