@@ -8,10 +8,14 @@ User = get_user_model()
 class Category(models.Model):
     name = models.CharField(max_length=255)
 
+    def __str__(self):
+        return self.name
 
 class Tag(models.Model):
     name = models.CharField(max_length=255)
 
+    def __str__(self):
+        return self.name
 
 class Survey(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
@@ -52,4 +56,4 @@ class UserAnswerDetail(models.Model):
     useranswer_id = models.ForeignKey(UserAnswer, on_delete=models.CASCADE)
     question = models.ForeignKey(Question, on_delete=models.CASCADE)
     answer_point = models.ForeignKey(AnswerOption, on_delete=models.CASCADE, null=True, blank=True) # 객관식답변
-    answer_text = models.TextField(blank=True) # 서술형답변
+    answer_text = models.TextField(null=True, blank=True) # 서술형답변
