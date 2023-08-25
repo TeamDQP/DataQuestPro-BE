@@ -1,7 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser, BaseUserManager
 from django.utils import timezone
-
 # Create your models here.
 
 
@@ -35,10 +34,12 @@ class User(AbstractUser):
     name = models.CharField(max_length=50, null=True, blank=True)
     is_staff = models.BooleanField(default=False)
     is_superuser = models.BooleanField(default=False)
-    is_active = models.BooleanField(default=True)
+    is_active = models.BooleanField(default=True)   # 회원 탈퇴 시에만 False
+    is_sleeping = models.BooleanField(default=True) # 휴면 상태면 True / 이메일 인증 시 False
+    email_opt_in = models.BooleanField(default=True)
     last_login = models.DateTimeField(null=True, blank=True)
     date_joined = models.DateTimeField(auto_now_add=True)
-
+    
     # username을 email로 해주겠다.
     USERNAME_FIELD = 'email'
     EMAIL_FIELD = 'email'
@@ -51,7 +52,8 @@ class User(AbstractUser):
 
 class Profile(models.Model):
     id = models.AutoField(primary_key=True)
-    user_id = models.OneToOneField(User, on_delete=models.CASCADE)
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
     username = models.CharField(max_length=255)
-    profileimage = models.CharField(max_length=255)
+    profileimage = models.ImageField(
+        upload_to='profile', null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)

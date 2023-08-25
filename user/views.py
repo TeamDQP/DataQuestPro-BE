@@ -2,9 +2,11 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
-from .serializers import UserSerializer
+from .serializers import UserSerializer, ProfileSerializer
 from rest_framework_simplejwt.tokens import RefreshToken, AccessToken
-
+from .models import Profile
+from django.contrib.auth import get_user_model
+User = get_user_model()
 
 class RegisterView(APIView):
     def post(self, request):
@@ -43,29 +45,80 @@ class JWTValidationView(APIView):
 
 
 
-class ProfileWrite(APIView):
-    # def get():
-    #     pass # url로 이동
+class EmailVerification(APIView):
+    def get(self, request, pk):
+        try:
+            user = User.objects.get(pk=pk)
+            if user.is_sleeping:
+                user.is_sleeping = False
+                user.save()
+                return Response('wake', status=status.HTTP_200_OK)
+            return Response('Email has already been verified.', status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            return Response({'error':e}, status=status.HTTP_400_BAD_REQUEST)
+
+
+class UserUpdate(APIView):
+    permission_classes = (IsAuthenticated,)
+
+    def get(self, request):
+        user = User.objects.get(email=request.user)
+        serializer = UserSerializer(user)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
     def post(self, request):
-        user = request.data.get('user') # request.user
-        image = request.data.get('image')
-        username = request.data.get('username')
-        profile = Profile.objects.create(user_id=user, profileimage=image, username=username)
-        serializer = ProfileSerializer(profile)
+        user = User.objects.get(email=request.user)
+        serializer = UserSerializer(user, data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+class ProfileWrite(APIView):
+    permission_classes = (IsAuthenticated,)
+
+    def post(self, request):
+        # user = request.data.get('user')
+        # image = request.data.get('image')
+        # username = request.data.get('username')
+        serializer = ProfileSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save(user=request.user)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-class ProfileUpdate(APIView):
+class ProfileRead(APIView):
+    permission_classes = (IsAuthenticated,)
+
     def get(self, request):
         profile = Profile.objects.get(user=request.user)
         serializer = ProfileSerializer(profile)
-        return Response(serializer.data)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class ProfileUpdate(APIView):
+    permission_classes = (IsAuthenticated,)
+
+    def get(self, request):
+        profile = Profile.objects.get(user=request.user)
+        serializer = ProfileSerializer(profile)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     def post(self, request):
         profile = Profile.objects.get(user=request.user)
         serializer = ProfileSerializer(profile, data=request.data)
         if serializer.is_valid():
             serializer.save()
-            return Response(serializer.data)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class ProfileDelete(APIView):
+    permission_classes = (IsAuthenticated,)
+
+    def post(self, request):  # request 안에 user가 있으므로 pk가 필요없음.
+        profile = Profile.objects.get(user=request.user)
+        profile.delete()
+        return Response(status=status.HTTP_404_NOT_FOUND)
