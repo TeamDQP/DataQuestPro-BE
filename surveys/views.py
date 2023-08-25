@@ -2,26 +2,86 @@ from django.shortcuts import render
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
+from django.core.exceptions import ObjectDoesNotExist
+from django.shortcuts import get_object_or_404
+from django.contrib.auth import authenticate
 from django.db.models import Prefetch
-from .models import Survey, Category, Tag, Question, AnswerOption
-from .serializers import SurveySerializer, CategorySerializer, TagSerializer, QuestionSerializer, AnswerOptionSerializer
+from .models import Survey, Category, Tag, Question, AnswerOption, UserAnswer, UserAnswerDetail
+from .serializers import SurveySerializer, CategorySerializer, TagSerializer, QuestionSerializer, AnswerSerializer
 
 # Create your views here.
 ### Survey
+class IndexMain(APIView):
+
+    def get(self, request):
+        # order by 추가예정
+        surveys = Survey.objects.all().select_related('category', 'user')
+
+        processed_surveys = []
+        
+        for survey in surveys:
+            processed_survey = {
+                'id': survey.id,
+                'user': survey.user.email,
+                'title': survey.title,
+                'intro': survey.intro,
+                'created_at': survey.created_at,
+                'updated_at': survey.updated_at,
+                'is_done': survey.is_done,
+                'category': survey.category.name if survey.category else '',
+                'tags': [tag.name for tag in survey.tags.all()],
+                'views': survey.views,
+            }
+            processed_surveys.append(processed_survey)
+
+        return Response(processed_surveys, status=status.HTTP_200_OK)
+    
+
+# 테스트 1차 성공
 class SurveyCreate(APIView):
 
+    def get(self,request):
+        categories = Category.objects.all()
+        serializer = CategorySerializer(categories, many=True)
+
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    
     def post(self, request):
+        # USER 임시 데이터
+        user = authenticate(email='test123@gmail.com', password='test123')
+        request.data['user'] = user.id
+        self.request.user = authenticate(email='test123@gmail.com', password='test123')
+
+        # 태그 데이터 저장
+        tags_data = request.data.get('tags')
+            
+        if tags_data:
+            tags = []
+            for tag_name in tags_data:
+                tag, created = Tag.objects.get_or_create(name=tag_name)
+                tags.append(tag)
+            request.data['tags'] = [tag.id for tag in tags]
+            
         survey_serializer = SurveySerializer(data=request.data)
+
         if survey_serializer.is_valid():
             survey_instance = survey_serializer.save(user=self.request.user)
             
+            # 질문 데이터 저장
             questions_data = request.data.get('questions')
             
             for question_data in questions_data:
                 question_data['survey'] = survey_instance.id
                 question_serializer = QuestionSerializer(data=question_data)
                 if question_serializer.is_valid():
-                    question_serializer.save()
+                    question_instance = question_serializer.save()
+                    answer_data = question_data.get('answers')
+                    for answer_text in answer_data:
+                        answer_serializer = AnswerSerializer(data={'question': question_instance.id, 'answer_text': answer_text})
+                        if answer_serializer.is_valid():
+                            answer_serializer.save()
+                        else:
+                            return Response(answer_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
                 else:
                     return Response(question_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
             
@@ -29,41 +89,56 @@ class SurveyCreate(APIView):
         return Response(survey_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
+#  테스트 1차 테스트 O (데이터 표출)
 class SurveyDetail(APIView):
 
-    def get(self,request, pk):
+    def get(self, request, pk):
         try:
-            survey = Survey.objects.select_related('question_set', 'tag_set').get(pk=pk)
-        except Survey.DoesNotExist:
-            return Response({"error": "설문이 존재하지 않습니다"}, status=404)
+            survey = Survey.objects.select_related('category', 'user').prefetch_related('question_set__answeroption_set').get(pk=pk)
+        except ObjectDoesNotExist:
+            return Response({"error": "설문이 존재하지 않습니다"}, status=status.HTTP_404_NOT_FOUND)
+        
+        # 조회수 증가
+        survey.views += 1
+        survey.save()
 
-        questions = survey.question_set.prefetch_related(
-            Prefetch('answeroption_set', queryset=AnswerOption.objects.select_related('question'))
-        ).all()
+        questions = survey.question_set.all()
+        serialized_questions = []
 
-        serialized_questions = QuestionSerializer(questions, many=True).data
-        serialized_tags = TagSerializer(survey.tag_set.all(), many=True).data
+        for question in questions:
+            serialized_question = QuestionSerializer(question).data
+            answer_options = AnswerOption.objects.filter(question=question)
+            serialized_question['answer_options'] = [answer.answer_text for answer in answer_options]
+            serialized_questions.append(serialized_question)
+
         data = {
-            "title":"survey",
-            "survey_id":pk,
-            "survey":survey,
-            "questions":serialized_questions,
-            "tags":serialized_tags
+            "title": "survey",
+            "survey_id": pk,
+            "survey": SurveySerializer(survey).data,
+            "questions": serialized_questions,
+            "tags": TagSerializer(survey.tags.all(), many=True).data
         }
         return Response(data)
 
 
+## 테스트 X
 class SurveyDelete(APIView):
 
     def post(self, request, pk):
-        try:
-            survey_to_delete = Survey.objects.get(pk=pk)
-            survey_to_delete.delete()
-            return Response({"message": "설문 삭제가 완료되었습니다"}, status=200)
-        except Survey.DoesNotExist:
-            return Response({"message": "삭제하려는 설문이 존재하지 않습니다"}, status=404)
+        survey_to_delete = get_object_or_404(Survey, pk=pk, created_by=request.user)
+
+        password = request.data.get("password")
+
+        user = authenticate(username=request.user.username, password=password)
+        
+        if not user:
+            return Response({"message": "비밀번호가 일치하지 않습니다"}, status=400)
+        
+        survey_to_delete.delete()
+        return Response({"message": "설문 삭제가 완료되었습니다"}, status=200)
     
 
+## 테스트 X
 class SurveyUpdate(APIView):
 
     def post(self, request, pk):
@@ -75,14 +150,12 @@ class SurveyUpdate(APIView):
         serializer = SurveySerializer(survey_instance, data=request.data)
 
         if serializer.is_valid():
-            # 설문 업데이트
             updated_survey = serializer.save()
 
-            # 질문 데이터 처리
             questions_data = request.data.get('questions')
             if questions_data:
                 for question_data in questions_data:
-                    question_id = question_data.get('id')  # 질문의 기존 ID를 가져옴 (기존 질문 업데이트용)
+                    question_id = question_data.get('id')
                     if question_id:
                         question_instance = Question.objects.get(id=question_id)
                         question_serializer = QuestionSerializer(question_instance, data=question_data)
@@ -97,29 +170,80 @@ class SurveyUpdate(APIView):
                             question_serializer.save()
                         else:
                             return Response(question_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
+            
+            answers_data = request.data.get('answers')
+            if answers_data:
+                for answer_data in answers_data:
+                    answer_id = answer_data.get('id')
+                    if answer_id:
+                        answer_instance = AnswerOption.objects.get(id=answer_id)
+                        answer_serializer = AnswerSerializer(answer_instance, data=answer_data)
+                        if answer_serializer.is_valid():
+                            answer_serializer.save()
+                        else:
+                            return Response(answer_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+                    else:
+                        answer_data['question'] = updated_survey.question_set.get(id=answer_data['question']).id
+                        answer_serializer = AnswerSerializer(data=answer_data)
+                        if answer_serializer.is_valid():
+                            answer_serializer.save()
+                        else:
+                            return Response(answer_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            
             return Response(serializer.data, status=status.HTTP_200_OK)
         else:
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         
 
-### category
-class CategoryCreate(APIView):
+class UserAnswerView(APIView):
+    def post(self, request):
+        # Authenticating the user
+        user = authenticate(email='test123@gmail.com', password='test123')
+        if not user:
+            return Response({"error": "Unauthenticated user."}, status=status.HTTP_401_UNAUTHORIZED)
+        
+        survey_id = request.data.get('survey_id')
+        answers = request.data.get('answers', [])
 
-    def post(slef, request):
-        serializer = CategorySerializer(data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data, status=201)
-        return Response(serializer.errors, status=400)
-    
+        try:
+            survey = Survey.objects.get(pk=survey_id)
+        except Survey.DoesNotExist:
+            return Response({"error": "Survey does not exist."}, status=status.HTTP_404_NOT_FOUND)
 
-### Tag
-class TagCreate(APIView):
+        user_answers = []
 
-    def post(slef, request):
-        serializer = TagSerializer(data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data, status=201)
-        return Response(serializer.errors, status=400)
+        for answer_data in answers:
+            question_id = answer_data.get('question_id')
+            answer_text = answer_data.get('answer_text')
+
+            try:
+                question = Question.objects.get(pk=question_id)
+            except Question.DoesNotExist:
+                continue
+
+            if question.type == "scale":
+                try:
+                    answer_option = AnswerOption.objects.get(answer_text=answer_text)
+                    answer_text = None
+                except AnswerOption.DoesNotExist:
+                    pass
+            else:
+                if answer_text:
+                    user_answer.answer_text = answer_text
+
+            user_answer, created = UserAnswer.objects.get_or_create(
+                user=user,
+                survey=survey,
+            )
+            user_answer.save()
+            user_answers.append(user_answer)
+
+            if created:
+                user_answer_detail = UserAnswerDetail.objects.create(
+                    useranswer_id=user_answer,
+                    question=question,
+                    answer_point=answer_option,
+                    answer_text=answer_text
+                )
+
+        return Response({"message": "설문조사 정보가 저장되었습니다."}, status=status.HTTP_201_CREATED)
