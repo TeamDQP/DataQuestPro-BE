@@ -6,7 +6,7 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.shortcuts import get_object_or_404
 from django.contrib.auth import authenticate
 from django.db.models import Prefetch
-from .models import Survey, Category, Tag, Question, AnswerOption, UserAnswer
+from .models import Survey, Category, Tag, Question, AnswerOption, UserAnswer, UserAnswerDetail
 from .serializers import SurveySerializer, CategorySerializer, TagSerializer, QuestionSerializer, AnswerSerializer
 
 # Create your views here.
@@ -196,23 +196,24 @@ class SurveyUpdate(APIView):
         
 
 class UserAnswerView(APIView):
-
     def post(self, request):
+        # Authenticating the user
         user = authenticate(email='test123@gmail.com', password='test123')
-        request.data['user'] = user.id
-        self.request.user = authenticate(email='test123@gmail.com', password='test123')
-        user = request.user
+        if not user:
+            return Response({"error": "Unauthenticated user."}, status=status.HTTP_401_UNAUTHORIZED)
+        
         survey_id = request.data.get('survey_id')
         answers = request.data.get('answers', [])
 
         try:
             survey = Survey.objects.get(pk=survey_id)
         except Survey.DoesNotExist:
-            return Response({"error": "설문이 존재하지 않습니다"}, status=status.HTTP_404_NOT_FOUND)
+            return Response({"error": "Survey does not exist."}, status=status.HTTP_404_NOT_FOUND)
+
+        user_answers = []
 
         for answer_data in answers:
             question_id = answer_data.get('question_id')
-            answer_option_id = answer_data.get('answer_option_id')
             answer_text = answer_data.get('answer_text')
 
             try:
@@ -220,22 +221,29 @@ class UserAnswerView(APIView):
             except Question.DoesNotExist:
                 continue
 
+            if question.type == "scale":
+                try:
+                    answer_option = AnswerOption.objects.get(answer_text=answer_text)
+                    answer_text = None
+                except AnswerOption.DoesNotExist:
+                    pass
+            else:
+                if answer_text:
+                    user_answer.answer_text = answer_text
+
             user_answer, created = UserAnswer.objects.get_or_create(
                 user=user,
                 survey=survey,
-                question=question,
             )
-
-            if answer_option_id:
-                try:
-                    answer_option = AnswerOption.objects.get(pk=answer_option_id)
-                    user_answer.answer_point = answer_option
-                except AnswerOption.DoesNotExist:
-                    pass  
-            
-            if answer_text:
-                user_answer.answer_text = answer_text
-
             user_answer.save()
+            user_answers.append(user_answer)
 
-        return Response({"message": "답변이 저장되었습니다."}, status=status.HTTP_201_CREATED)
+            if created:
+                user_answer_detail = UserAnswerDetail.objects.create(
+                    useranswer_id=user_answer,
+                    question=question,
+                    answer_point=answer_option,
+                    answer_text=answer_text
+                )
+
+        return Response({"message": "설문조사 정보가 저장되었습니다."}, status=status.HTTP_201_CREATED)
