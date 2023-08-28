@@ -14,9 +14,14 @@ from .serializers import SurveySerializer, CategorySerializer, TagSerializer, Qu
 class IndexMain(APIView):
 
     def get(self, request):
+        category = request.query_params.get('category')
         # order by 추가예정
         surveys = Survey.objects.all().select_related('category', 'user')
 
+        if category and category != 'all':
+            surveys = surveys.filter(category__id=category)
+
+        categories = Category.objects.all()
         processed_surveys = []
         
         for survey in surveys:
@@ -34,7 +39,14 @@ class IndexMain(APIView):
             }
             processed_surveys.append(processed_survey)
 
-        return Response(processed_surveys, status=status.HTTP_200_OK)
+        category_serializer = CategorySerializer(categories, many=True)
+
+        data = {
+            'surveys': processed_surveys,
+            'categories': category_serializer.data
+        }
+
+        return Response(data, status=status.HTTP_200_OK)
     
 
 # 테스트 1차 성공
