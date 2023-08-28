@@ -115,21 +115,20 @@ class SurveyDetail(APIView):
             "title": "survey",
             "survey_id": pk,
             "survey": SurveySerializer(survey).data,
+            "category": survey.category.name,
             "questions": serialized_questions,
             "tags": TagSerializer(survey.tags.all(), many=True).data
         }
         return Response(data)
 
 
-## 테스트 X
+## 테스트 1차 테스트 O
 class SurveyDelete(APIView):
 
     def post(self, request, pk):
-        survey_to_delete = get_object_or_404(Survey, pk=pk, created_by=request.user)
+        user = authenticate(email='test123@gmail.com', password='test123')
 
-        password = request.data.get("password")
-
-        user = authenticate(username=request.user.username, password=password)
+        survey_to_delete = get_object_or_404(Survey, pk=pk, user=user)
         
         if not user:
             return Response({"message": "비밀번호가 일치하지 않습니다"}, status=400)
@@ -138,7 +137,7 @@ class SurveyDelete(APIView):
         return Response({"message": "설문 삭제가 완료되었습니다"}, status=200)
     
 
-## 테스트 X
+## 테스트 1차 테스트 O
 class SurveyUpdate(APIView):
 
     def get(self, request, pk):
@@ -165,56 +164,59 @@ class SurveyUpdate(APIView):
             "questions": serialized_questions,
             "tags": TagSerializer(survey.tags.all(), many=True).data
         }
-        print(data)
+
         return Response(data)
     
     def post(self, request, pk):
+        # USER 임시 데이터
+        user = authenticate(email='test123@gmail.com', password='test123')
+        request.data['user'] = user.id
+        self.request.user = authenticate(email='test123@gmail.com', password='test123')
+
+        tags_data = request.data.get('tags')
+            
+        if tags_data:
+            tags = []
+            for tag_name in tags_data:
+                tag, created = Tag.objects.get_or_create(name=tag_name)
+                tags.append(tag)
+            request.data['tags'] = [tag.id for tag in tags]
+            
         survey_instance = get_object_or_404(Survey, pk=pk)
         serializer = SurveySerializer(survey_instance, data=request.data)
 
+        print(serializer.is_valid())
+        print(serializer.errors)
         if serializer.is_valid():
             updated_survey = serializer.save()
 
+            # Delete existing questions for the updated survey
+            updated_survey.question_set.all().delete()
+
+            # Save new questions
             questions_data = request.data.get('questions')
             if questions_data:
                 for question_data in questions_data:
-                    question_id = question_data.get('id')
-                    if question_id:
-                        question_instance = get_object_or_404(Question, id=question_id)
-                        question_serializer = QuestionSerializer(question_instance, data=question_data)
-                        if question_serializer.is_valid():
-                            question_serializer.save()
-                        else:
-                            return Response(question_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+                    question_data['survey'] = updated_survey.id
+                    question_serializer = QuestionSerializer(data=question_data)
+                    if question_serializer.is_valid():
+                        question_serializer.save()
                     else:
-                        question_data['survey'] = updated_survey.id
-                        question_serializer = QuestionSerializer(data=question_data)
-                        if question_serializer.is_valid():
-                            question_serializer.save()
-                        else:
-                            return Response(question_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-            
+                        return Response(question_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+            # Save new answer options
             answers_data = request.data.get('answers')
             if answers_data:
                 for answer_data in answers_data:
-                    answer_id = answer_data.get('id')
-                    if answer_id:
-                        answer_instance = get_object_or_404(AnswerOption, id=answer_id)
-                        answer_serializer = AnswerOptionSerializer(answer_instance, data=answer_data)
-                        if answer_serializer.is_valid():
-                            answer_serializer.save()
-                        else:
-                            return Response(answer_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+                    question_id = answer_data.get('question')
+                    question_instance = get_object_or_404(Question, id=question_id)
+                    answer_data['question'] = question_instance.id
+                    answer_serializer = AnswerOptionSerializer(data=answer_data)
+                    if answer_serializer.is_valid():
+                        answer_serializer.save()
                     else:
-                        question_id = answer_data.get('question')
-                        question_instance = get_object_or_404(Question, id=question_id)
-                        answer_data['question'] = question_instance.id
-                        answer_serializer = AnswerOptionSerializer(data=answer_data)
-                        if answer_serializer.is_valid():
-                            answer_serializer.save()
-                        else:
-                            return Response(answer_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-            
+                        return Response(answer_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
             return Response(serializer.data, status=status.HTTP_200_OK)
         else:
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
