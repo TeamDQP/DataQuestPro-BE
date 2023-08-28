@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import SurveyCreate, SurveyDetail, SurveyUpdate, SurveyDelete, IndexMain, UserAnswerView
+from .views import SurveyCreate, SurveyDetail, SurveyUpdate, SurveyDelete, SurveyResult, IndexMain, UserAnswerView
 
 app_name = 'surveys'
 
@@ -13,4 +13,5 @@ urlpatterns = [
     path('survey/detail/<int:pk>', SurveyDetail.as_view(), name='survey-detail'),
     path('survey/delete/<int:pk>', SurveyDelete.as_view(), name='survey-delete'),
     path('survey/submit/', UserAnswerView.as_view(), name='survey-submit'),
+    path('survey/result/<int:pk>', SurveyResult.as_view(), name='survey-result'),
 ]

@@ -5,7 +5,7 @@ from rest_framework import status
 from django.core.exceptions import ObjectDoesNotExist
 from django.shortcuts import get_object_or_404
 from django.contrib.auth import authenticate
-from django.db.models import Prefetch
+from django.db.models import Count
 from .models import Survey, Category, Tag, Question, AnswerOption, UserAnswer, UserAnswerDetail
 from .serializers import SurveySerializer, CategorySerializer, TagSerializer, QuestionSerializer, AnswerOptionSerializer
 
@@ -189,6 +189,7 @@ class SurveyUpdate(APIView):
             updated_survey = serializer.save()
 
             # 기존 질문, 답변 데이터 삭제
+            updated_survey.useranswer_set.all().delete()
             updated_survey.question_set.all().delete()
 
             questions_data = request.data.get('questions')
@@ -216,6 +217,34 @@ class SurveyUpdate(APIView):
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
             
         
+class SurveyResult(APIView):
+    def get(self, request, pk):
+        try:
+            questions = Question.objects.filter(survey_id=pk)
+            result = []
+
+            for question in questions:
+                answer_options = question.answeroption_set.all()  # 해당 질문에 대한 모든 답변 옵션 가져오기
+                question_text = question.question_text
+
+                for answer_option in answer_options:
+                    answer_text = answer_option.answer_text
+                    answer_count = UserAnswerDetail.objects.filter(
+                        useranswer__survey_id=pk,
+                        question=question,
+                        answer_point=answer_option
+                    ).count()
+
+                    result.append({
+                        'question_text': question_text,
+                        'answer_text': answer_text,
+                        'count': answer_count
+                    })
+
+            return Response(result, status=200)
+        except Exception as e:
+            return Response({'error': str(e)}, status=500)
+
 
 class UserAnswerView(APIView):
     def post(self, request):
@@ -234,6 +263,13 @@ class UserAnswerView(APIView):
 
         user_answers = []
 
+        user_answer, created = UserAnswer.objects.get_or_create(
+                user=user,
+                survey=survey,
+            )
+        user_answer.save()
+        user_answers.append(user_answer)
+        
         for answer_data in answers:
             question_id = answer_data.get('question_id')
             answer_text = answer_data.get('answer_text')
@@ -249,20 +285,10 @@ class UserAnswerView(APIView):
                     answer_text = None
                 except AnswerOption.DoesNotExist:
                     pass
-            else:
-                if answer_text:
-                    user_answer.answer_text = answer_text
-
-            user_answer, created = UserAnswer.objects.get_or_create(
-                user=user,
-                survey=survey,
-            )
-            user_answer.save()
-            user_answers.append(user_answer)
 
             if created:
                 user_answer_detail = UserAnswerDetail.objects.create(
-                    useranswer_id=user_answer,
+                    useranswer=user_answer,
                     question=question,
                     answer_point=answer_option,
                     answer_text=answer_text
