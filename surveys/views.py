@@ -185,37 +185,31 @@ class SurveyUpdate(APIView):
         survey_instance = get_object_or_404(Survey, pk=pk)
         serializer = SurveySerializer(survey_instance, data=request.data)
 
-        print(serializer.is_valid())
-        print(serializer.errors)
         if serializer.is_valid():
             updated_survey = serializer.save()
 
-            # Delete existing questions for the updated survey
+            # 기존 질문, 답변 데이터 삭제
             updated_survey.question_set.all().delete()
 
-            # Save new questions
             questions_data = request.data.get('questions')
             if questions_data:
                 for question_data in questions_data:
                     question_data['survey'] = updated_survey.id
                     question_serializer = QuestionSerializer(data=question_data)
                     if question_serializer.is_valid():
-                        question_serializer.save()
+                        question_instance = question_serializer.save()
+
+                        answers_data = question_data.get('answers')
+                        if answers_data:
+                            for answer_data in answers_data:
+                                answer_instance = {'question': question_instance.id, 'answer_text': answer_data}
+                                answer_serializer = AnswerOptionSerializer(data=answer_instance)
+                                if answer_serializer.is_valid():
+                                    answer_serializer.save()
+                                else:
+                                    return Response(answer_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
                     else:
                         return Response(question_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-            # Save new answer options
-            answers_data = request.data.get('answers')
-            if answers_data:
-                for answer_data in answers_data:
-                    question_id = answer_data.get('question')
-                    question_instance = get_object_or_404(Question, id=question_id)
-                    answer_data['question'] = question_instance.id
-                    answer_serializer = AnswerOptionSerializer(data=answer_data)
-                    if answer_serializer.is_valid():
-                        answer_serializer.save()
-                    else:
-                        return Response(answer_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
             return Response(serializer.data, status=status.HTTP_200_OK)
         else:
