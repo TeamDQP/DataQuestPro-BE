@@ -27,6 +27,7 @@ def send_verification_email(sender, instance, created, **kwargs):
                 to=[instance.email],
                 connection=connection)
             email.send()
+            
 
 @receiver(post_save, sender=User)
 def send_register_email(sender, instance, created, **kwargs):
@@ -96,3 +97,5 @@ def survey_close_email(sender, instance, **kwargs):
                 to=list(targets),
                 connection=connection)
             email.send()
+
+
