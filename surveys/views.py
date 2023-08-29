@@ -105,6 +105,12 @@ class SurveyCreate(APIView):
 class SurveyDetail(APIView):
 
     def get(self, request, pk):
+
+        # USER 임시 데이터
+        user = authenticate(email='test123@gmail.com', password='test123')
+        request.data['user'] = user.id
+        self.request.user = authenticate(email='test123@gmail.com', password='test123')
+
         try:
             survey = Survey.objects.select_related('category', 'user').prefetch_related('question_set__answeroption_set').get(pk=pk)
         except ObjectDoesNotExist:
@@ -117,10 +123,23 @@ class SurveyDetail(APIView):
         questions = survey.question_set.all()
         serialized_questions = []
 
+        if request.user:
+            user_answers = UserAnswerDetail.objects.filter(useranswer__survey=survey, useranswer__user=request.user)
+
+
         for question in questions:
             serialized_question = QuestionSerializer(question).data
             answer_options = AnswerOption.objects.filter(question=question)
             serialized_question['answer_options'] = [answer.answer_text for answer in answer_options]
+            
+            # Find user's answer detail for this question
+            user_answer_detail = user_answers.filter(question=question).first()
+            if user_answer_detail:
+                if user_answer_detail.question.type == "scale":
+                    serialized_question['user_answer_text'] = user_answer_detail.answer_point.answer_text
+                else:
+                    serialized_question['user_answer_text'] = user_answer_detail.answer_text
+            
             serialized_questions.append(serialized_question)
 
         data = {
@@ -131,6 +150,7 @@ class SurveyDetail(APIView):
             "questions": serialized_questions,
             "tags": TagSerializer(survey.tags.all(), many=True).data
         }
+        print(data)
         return Response(data)
 
 
@@ -297,6 +317,8 @@ class UserAnswerView(APIView):
                     answer_text = None
                 except AnswerOption.DoesNotExist:
                     pass
+            else:
+                answer_option = None
 
             if created:
                 user_answer_detail = UserAnswerDetail.objects.create(
