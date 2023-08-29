@@ -42,6 +42,7 @@ def send_verification_email(sender, instance, created, **kwargs):
             profile = Profile.objects.create(user=instance, username=f'user{instance.pk}', profileimage=profile_image)
             print(f'Success: user{instance.pk}-default profile created')
 
+
 @receiver(post_save, sender=User)
 def send_register_email(sender, instance, created, **kwargs):
     if not instance.is_sleeping:
@@ -110,3 +111,5 @@ def survey_close_email(sender, instance, **kwargs):
                 to=list(targets),
                 connection=connection)
             email.send()
+
+
