@@ -50,10 +50,14 @@ class User(AbstractUser):
     objects = UserManager()
 
 
+def user_directory_path(instance, filename):
+    # instance는 Profile 객체, filename은 업로드된 파일의 이름
+    return f'profile/user{instance.user.pk}/{filename}'
+
 class Profile(models.Model):
     id = models.AutoField(primary_key=True)
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     username = models.CharField(max_length=255)
     profileimage = models.ImageField(
-        upload_to='profile', null=True, blank=True)
+        upload_to=user_directory_path, null=True, blank=True)   # instance, filename은 ORM에 정의되어있음(명시 전달X)
     created_at = models.DateTimeField(auto_now_add=True)
