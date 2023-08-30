@@ -4,6 +4,8 @@ from django.contrib.auth import get_user_model
 from django.conf import settings
 from django.core.mail import EmailMessage, get_connection
 from surveys.models import Survey
+from django.core.files import File
+from user.models import Profile
 
 User = get_user_model()
 
@@ -27,6 +29,19 @@ def send_verification_email(sender, instance, created, **kwargs):
                 to=[instance.email],
                 connection=connection)
             email.send()
+        
+        # 프로필도 같이 생성: 기본프로필 이름+이미지
+        image_path = 'static/media/profile/default-no-profile-pic.jpg'
+
+        # 이미지 파일을 열고 File 객체 생성
+        with open(image_path, 'rb') as img_file:
+            image_name = f'user{instance.pk}-default-profile.jpg'
+            profile_image = File(img_file, name=image_name)
+
+            # 기본 프로필 생성
+            profile = Profile.objects.create(user=instance, username=f'user{instance.pk}', profileimage=profile_image)
+            print(f'Success: user{instance.pk}-default profile created')
+
 
 @receiver(post_save, sender=User)
 def send_register_email(sender, instance, created, **kwargs):
@@ -96,3 +111,5 @@ def survey_close_email(sender, instance, **kwargs):
                 to=list(targets),
                 connection=connection)
             email.send()
+
+

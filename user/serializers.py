@@ -1,4 +1,5 @@
 from rest_framework import serializers
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from .models import User, Profile
 
 
@@ -7,7 +8,7 @@ class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         # fields = ["email", "name", "password"]
-        fields = ["id", "email", "name", "password"]
+        fields = ["email", "name", "password", "email_opt_in"]
 
     def create(self, validated_data):
         user = User.objects.create(
@@ -21,3 +22,12 @@ class ProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = Profile
         fields = ["username", "profileimage"]
+
+
+class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
+
+    def validate(self, attrs):
+        data = super().validate(attrs)
+        if not self.user.is_active:
+            raise Exception
+        return data
