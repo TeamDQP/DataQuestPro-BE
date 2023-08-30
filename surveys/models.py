@@ -26,7 +26,7 @@ class Survey(models.Model):
     # enddated_at 추가
     is_done = models.BooleanField(default=False) # 설문 조사 종료 체크
     category = models.ForeignKey(Category, on_delete=models.CASCADE, null=True, blank=True)# 설문조사 유형
-    tags = models.ManyToManyField('Tag', related_name='surveys', null=True, blank=True) # 제작자의 태그
+    tags = models.ManyToManyField('Tag', related_name='surveys', blank=True) # 제작자의 태그
     views = models.IntegerField(default=0)
 
 
@@ -53,7 +53,7 @@ class UserAnswer(models.Model):
 
 
 class UserAnswerDetail(models.Model):
-    useranswer_id = models.ForeignKey(UserAnswer, on_delete=models.CASCADE)
+    useranswer = models.ForeignKey(UserAnswer, on_delete=models.CASCADE)
     question = models.ForeignKey(Question, on_delete=models.CASCADE)
     answer_point = models.ForeignKey(AnswerOption, on_delete=models.CASCADE, null=True, blank=True) # 객관식답변
     answer_text = models.TextField(null=True, blank=True) # 서술형답변
