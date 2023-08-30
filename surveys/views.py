@@ -150,7 +150,6 @@ class SurveyDetail(APIView):
             "questions": serialized_questions,
             "tags": TagSerializer(survey.tags.all(), many=True).data
         }
-        print(data)
         return Response(data)
 
 
@@ -259,20 +258,32 @@ class SurveyResult(APIView):
                 answer_options = question.answeroption_set.all()  # 해당 질문에 대한 모든 답변 옵션 가져오기
                 question_text = question.question_text
 
-                for answer_option in answer_options:
-                    answer_text = answer_option.answer_text
-                    answer_count = UserAnswerDetail.objects.filter(
-                        useranswer__survey_id=pk,
-                        question=question,
-                        answer_point=answer_option
-                    ).count()
-
-                    result.append({
-                        'question_text': question_text,
-                        'answer_text': answer_text,
-                        'count': answer_count
-                    })
-
+                if question.type == "scale":
+                    for answer_option in answer_options:
+                        answer_text = answer_option.answer_text
+                        answer_count = UserAnswerDetail.objects.filter(
+                            useranswer__survey_id=pk,
+                            question=question,
+                            answer_point=answer_option
+                        ).count()
+                        result.append({
+                            'question_qnum':question.qnum,
+                            'question_text': question_text,
+                            'answer_text': answer_text,
+                            'count': answer_count
+                        })
+                else:
+                    open_text_list = UserAnswerDetail.objects.filter(
+                            useranswer__survey_id=pk,
+                            question=question
+                    )
+                    for open_text in open_text_list:
+                        result.append({
+                            'question_qnum':question.qnum,
+                            'question_text': question_text,
+                            'answer_text': open_text.answer_text
+                        })
+            print(result)
             return Response(result, status=200)
         except Exception as e:
             return Response({'error': str(e)}, status=500)
@@ -320,12 +331,12 @@ class UserAnswerView(APIView):
             else:
                 answer_option = None
 
-            if created:
-                user_answer_detail = UserAnswerDetail.objects.create(
-                    useranswer=user_answer,
-                    question=question,
-                    answer_point=answer_option,
-                    answer_text=answer_text
-                )
+            user_answer_detail, detail_created = UserAnswerDetail.objects.get_or_create(
+                useranswer=user_answer,
+                question=question,
+            )
+            user_answer_detail.answer_point = answer_option
+            user_answer_detail.answer_text = answer_text
+            user_answer_detail.save()
 
         return Response({"message": "설문조사 정보가 저장되었습니다."}, status=status.HTTP_201_CREATED)
