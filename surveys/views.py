@@ -1,15 +1,24 @@
+from django.shortcuts import render
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
+from rest_framework.permissions import IsAuthenticated
+from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.authentication import JWTAuthentication
 from django.core.exceptions import ObjectDoesNotExist
 from django.shortcuts import get_object_or_404
 from django.contrib.auth import authenticate
 from django.db.models import Count
 from .models import Survey, Category, Tag, Question, AnswerOption, UserAnswer, UserAnswerDetail
 from .serializers import SurveySerializer, CategorySerializer, TagSerializer, QuestionSerializer, AnswerOptionSerializer
+from django.contrib.auth import get_user_model
 
+User = get_user_model()
 
+# Create your views here.
+### Survey
 class IndexMain(APIView):
+    permission_classes = [IsAuthenticated]
 
     def get(self, request):
         category = request.query_params.get('category')
@@ -21,7 +30,7 @@ class IndexMain(APIView):
 
         categories = Category.objects.all()
         processed_surveys = []
-
+        
         for survey in surveys:
             processed_survey = {
                 'id': survey.id,
@@ -45,41 +54,42 @@ class IndexMain(APIView):
         }
 
         return Response(data, status=status.HTTP_200_OK)
+    
 
 # 테스트 1차 성공
 class SurveyCreate(APIView):
+    permission_classes = [IsAuthenticated]
 
-    def get(self, request):
+    def get(self,request):
         categories = Category.objects.all()
         serializer = CategorySerializer(categories, many=True)
 
         return Response(serializer.data, status=status.HTTP_200_OK)
-
+    
     def post(self, request):
-        # USER 임시 데이터
-        user = authenticate(email='test123@gmail.com', password='test123')
-        request.data['user'] = user.id
-        self.request.user = authenticate(
-            email='test123@gmail.com', password='test123')
-
         # 태그 데이터 저장
         tags_data = request.data.get('tags')
-
+        
         if tags_data:
             tags = []
             for tag_name in tags_data:
                 tag, created = Tag.objects.get_or_create(name=tag_name)
                 tags.append(tag)
             request.data['tags'] = [tag.id for tag in tags]
+        
+        authentication = JWTAuthentication()
+        token = request.META.get('HTTP_AUTHORIZATION').split(' ')[-1]
+        validated_token = authentication.get_validated_token(token)
+        
+        request.data['user'] = validated_token['user_id']
 
         survey_serializer = SurveySerializer(data=request.data)
 
         if survey_serializer.is_valid():
             survey_instance = survey_serializer.save(user=self.request.user)
-
             # 질문 데이터 저장
             questions_data = request.data.get('questions')
-
+            
             for question_data in questions_data:
                 question_data['survey'] = survey_instance.id
                 question_serializer = QuestionSerializer(data=question_data)
@@ -87,35 +97,28 @@ class SurveyCreate(APIView):
                     question_instance = question_serializer.save()
                     answer_data = question_data.get('answers')
                     for answer_text in answer_data:
-                        answer_serializer = AnswerOptionSerializer(
-                            data={'question': question_instance.id, 'answer_text': answer_text})
+                        answer_serializer = AnswerOptionSerializer(data={'question': question_instance.id, 'answer_text': answer_text})
                         if answer_serializer.is_valid():
                             answer_serializer.save()
                         else:
                             return Response(answer_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
                 else:
                     return Response(question_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
+            
             return Response(survey_serializer.data, status=status.HTTP_201_CREATED)
         return Response(survey_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 #  테스트 1차 테스트 O (데이터 표출)
 class SurveyDetail(APIView):
-
+    permission_classes = [IsAuthenticated]
+    
     def get(self, request, pk):
-
-        # USER 임시 데이터
-        user = authenticate(email='test123@gmail.com', password='test123')
-        request.data['user'] = user.id
-        self.request.user = authenticate(email='test123@gmail.com', password='test123')
-
         try:
-            survey = Survey.objects.select_related('category', 'user').prefetch_related(
-                'question_set__answeroption_set').get(pk=pk)
+            survey = Survey.objects.select_related('category', 'user').prefetch_related('question_set__answeroption_set').get(pk=pk)
         except ObjectDoesNotExist:
             return Response({"error": "설문이 존재하지 않습니다"}, status=status.HTTP_404_NOT_FOUND)
-
+        
         # 조회수 증가
         survey.views += 1
         survey.save()
@@ -139,7 +142,7 @@ class SurveyDetail(APIView):
                     serialized_question['user_answer_text'] = user_answer_detail.answer_point.answer_text
                 else:
                     serialized_question['user_answer_text'] = user_answer_detail.answer_text
-
+            
             serialized_questions.append(serialized_question)
 
         data = {
@@ -155,21 +158,21 @@ class SurveyDetail(APIView):
 
 ## 테스트 1차 테스트 O
 class SurveyDelete(APIView):
+    permission_classes = [IsAuthenticated]
 
     def post(self, request, pk):
-        user = authenticate(email='test123@gmail.com', password='test123')
-
-        survey_to_delete = get_object_or_404(Survey, pk=pk, user=user)
-
-        if not user:
+        survey_to_delete = get_object_or_404(Survey, pk=pk, user=request.user)
+        
+        if not request.user:
             return Response({"message": "비밀번호가 일치하지 않습니다"}, status=400)
-
+        
         survey_to_delete.delete()
         return Response({"message": "설문 삭제가 완료되었습니다"}, status=200)
-
+    
 
 ## 테스트 1차 테스트 O
 class SurveyUpdate(APIView):
+    permission_classes = [IsAuthenticated]
 
     def get(self, request, pk):
         try:
@@ -180,11 +183,21 @@ class SurveyUpdate(APIView):
         questions = survey.question_set.all()
         serialized_questions = []
 
+        if request.user:
+            user_answers = UserAnswerDetail.objects.filter(useranswer__survey=survey, useranswer__user=request.user)
+
         for question in questions:
             serialized_question = QuestionSerializer(question).data
             answer_options = AnswerOption.objects.filter(question=question)
             serialized_question['answer_options'] = [answer.answer_text for answer in answer_options]
             serialized_questions.append(serialized_question)
+
+            user_answer_detail = user_answers.filter(question=question).first()
+            if user_answer_detail:
+                if user_answer_detail.question.type == "scale":
+                    serialized_question['user_answer_text'] = user_answer_detail.answer_point.answer_text
+                else:
+                    serialized_question['user_answer_text'] = user_answer_detail.answer_text
 
         categories = Category.objects.all()
 
@@ -199,11 +212,6 @@ class SurveyUpdate(APIView):
         return Response(data)
     
     def post(self, request, pk):
-        # USER 임시 데이터
-        user = authenticate(email='test123@gmail.com', password='test123')
-        request.data['user'] = user.id
-        self.request.user = authenticate(email='test123@gmail.com', password='test123')
-
         tags_data = request.data.get('tags')
             
         if tags_data:
@@ -214,6 +222,13 @@ class SurveyUpdate(APIView):
             request.data['tags'] = [tag.id for tag in tags]
             
         survey_instance = get_object_or_404(Survey, pk=pk)
+
+        authentication = JWTAuthentication()
+        token = request.META.get('HTTP_AUTHORIZATION').split(' ')[-1]
+        validated_token = authentication.get_validated_token(token)
+        
+        request.data['user'] = validated_token['user_id']
+        
         serializer = SurveySerializer(survey_instance, data=request.data)
 
         if serializer.is_valid():
@@ -246,9 +261,11 @@ class SurveyUpdate(APIView):
             return Response(serializer.data, status=status.HTTP_200_OK)
         else:
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
+            
         
 class SurveyResult(APIView):
+    permission_classes = [IsAuthenticated]
+
     def get(self, request, pk):
         try:
             questions = Question.objects.filter(survey_id=pk)
@@ -283,19 +300,20 @@ class SurveyResult(APIView):
                             'question_text': question_text,
                             'answer_text': open_text.answer_text
                         })
-            print(result)
             return Response(result, status=200)
         except Exception as e:
             return Response({'error': str(e)}, status=500)
 
 
 class UserAnswerView(APIView):
+    permission_classes = [IsAuthenticated]
+
     def post(self, request):
         # Authenticating the user
-        user = authenticate(email='test123@gmail.com', password='test123')
+        user = request.user
         if not user:
             return Response({"error": "Unauthenticated user."}, status=status.HTTP_401_UNAUTHORIZED)
-
+        
         survey_id = request.data.get('survey_id')
         answers = request.data.get('answers', [])
 
@@ -324,8 +342,7 @@ class UserAnswerView(APIView):
 
             if question.type == "scale":
                 try:
-                    answer_option = AnswerOption.objects.get(
-                        answer_text=answer_text)
+                    answer_option = AnswerOption.objects.get(answer_text=answer_text)
                     answer_text = None
                 except AnswerOption.DoesNotExist:
                     pass
