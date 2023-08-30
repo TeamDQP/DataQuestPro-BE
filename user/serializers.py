@@ -28,6 +28,9 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
 
     def validate(self, attrs):
         data = super().validate(attrs)
+
         if not self.user.is_active:
+            raise Exception
+        if self.user.is_sleeping:
             raise Exception
         return data
