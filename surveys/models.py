@@ -23,7 +23,7 @@ class Survey(models.Model):
     intro = models.TextField() # 설문조사 설명
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    # enddated_at 추가
+    enddated_at = models.DateTimeField()
     is_done = models.BooleanField(default=False) # 설문 조사 종료 체크
     category = models.ForeignKey(Category, on_delete=models.CASCADE, null=True, blank=True)# 설문조사 유형
     tags = models.ManyToManyField('Tag', related_name='surveys', blank=True) # 제작자의 태그
