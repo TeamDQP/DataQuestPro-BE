@@ -21,7 +21,8 @@ def send_verification_email(sender, instance, created, **kwargs):
                 use_tls=settings.EMAIL_USE_TLS
         ) as connection:
 
-            verification_link = f'http://127.0.0.1:8000/user/verify/{instance.pk}'
+            domain = '15.164.56.233'
+            verification_link = f'http://{domain}:8000/user/verify/{instance.pk}'
             email = EmailMessage(
                 subject='Email Verification for Your Account',
                 body=f'Please click the link below to verify your email address:\n\n{verification_link}',
