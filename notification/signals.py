@@ -22,7 +22,7 @@ def send_verification_email(sender, instance, created, **kwargs):
         ) as connection:
 
             domain = '15.164.56.233'
-            verification_link = f'http://{domain}:8000/user/verify/{instance.pk}'
+            verification_link = f'http://{domain}/api/user/verify/{instance.pk}'
             email = EmailMessage(
                 subject='Email Verification for Your Account',
                 body=f'Please click the link below to verify your email address:\n\n{verification_link}',
