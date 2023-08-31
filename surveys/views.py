@@ -22,7 +22,6 @@ class IndexMain(APIView):
 
     def get(self, request):
         category = request.query_params.get('category')
-        # order by 추가예정
         surveys = Survey.objects.all().select_related('category', 'user')
 
         if category and category != 'all':
@@ -30,7 +29,6 @@ class IndexMain(APIView):
 
         categories = Category.objects.all()
         processed_surveys = []
-        
         for survey in surveys:
             processed_survey = {
                 'id': survey.id,
@@ -43,6 +41,7 @@ class IndexMain(APIView):
                 'category': survey.category.name if survey.category else '',
                 'tags': [tag.name for tag in survey.tags.all()],
                 'views': survey.views,
+                'owner': 'true' if request.user.email == survey.user.email else 'false',
             }
             processed_surveys.append(processed_survey)
 
@@ -228,7 +227,7 @@ class SurveyUpdate(APIView):
         validated_token = authentication.get_validated_token(token)
         
         request.data['user'] = validated_token['user_id']
-        
+
         serializer = SurveySerializer(survey_instance, data=request.data)
 
         if serializer.is_valid():
