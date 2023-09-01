@@ -19,8 +19,25 @@ User = get_user_model()
 ### Survey
 class IndexMain(APIView):
     permission_classes = [IsAuthenticated]
-
     def get(self, request):
+        '''
+            설문조사리스트를 불러오는 API
+
+            ---
+            # 내용
+                -id : 설문조사 PK
+                -user: 유저 정보
+                -title": 설문 조사 제목
+                -intro": 설문 조사 설명
+                -created_at": 설문조사 작성시간
+                -updated_at": 설문조사 수정시간
+                -is_done": 설문조사 활성화상태
+                -category": 카테고리 내용
+                -tags: 태그 내용
+                -views: 설문조사 조회수
+                -owner: 설문조사 작성자 확인
+                -useranswer: 유저가 해당설문조사에 대한 답변 유무
+        '''
         category = request.query_params.get('category')
         surveys = Survey.objects.all().select_related('category', 'user').order_by('-created_at','is_done')
 
@@ -60,14 +77,34 @@ class IndexMain(APIView):
 # 테스트 1차 성공
 class SurveyCreate(APIView):
     permission_classes = [IsAuthenticated]
-
     def get(self,request):
+        '''
+            설문조사의 포함되는 카테고리리스트 불러오는 API
+
+            ---
+            # 내용
+                -id : 카테고리 ID
+                -name: 카테고리 이름
+        '''
         categories = Category.objects.all()
         serializer = CategorySerializer(categories, many=True)
 
         return Response(serializer.data, status=status.HTTP_200_OK)
     
     def post(self, request):
+        '''
+            설문조사를 저장하는 API
+
+            ---
+            # Parameters
+                -title : 설문조사 제목
+                -intro : 설문조사 설명
+                -is_done : 설문조사 활성화상태
+                -enddated_at : 설문조사 종료시간
+                -questions : 설문조사 내용
+                -category : 카테고리 내용
+                -tags : 태그 내용
+        '''
         # 태그 데이터 저장
         tags_data = request.data.get('tags')
         
@@ -115,6 +152,28 @@ class SurveyDetail(APIView):
     permission_classes = [IsAuthenticated]
     
     def get(self, request, pk):
+        '''
+            설문조사 내용을 확인하는 API
+
+            ---
+            # 내용
+                -survey: {
+                -    id": 설문조사 PK
+                -    title: 설문조사 제목
+                -    intro: 설문조사 설명
+                -    created_at: 설문조사 작성시간
+                -    updated_at: 설문조사 수정시간
+                -    enddated_at: 설문조사 종료시간
+                -    is_done: 설문조사 활성화상태
+                -    views: 설문조사 조회수 
+                -    user: 설문조사 작성한 유저
+                -    category: 설문조사 카테고리
+                -    tags: 설문조사 태그
+                -}
+                -category: 카테고리 내용
+                -questions: 설문조사 질문 예시답변 내용
+                -tags: 태그 내용
+        '''
         try:
             survey = Survey.objects.select_related('category', 'user').prefetch_related('question_set__answeroption_set').get(pk=pk)
         except ObjectDoesNotExist:
@@ -147,8 +206,6 @@ class SurveyDetail(APIView):
             serialized_questions.append(serialized_question)
 
         data = {
-            "title": "survey",
-            "survey_id": pk,
             "survey": SurveySerializer(survey).data,
             "category": survey.category.name,
             "questions": serialized_questions,
@@ -162,6 +219,13 @@ class SurveyDelete(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request, pk):
+        '''
+            설문조사 삭제하는 API
+
+            ---
+            # Parameters
+            - ID : 설문조사 PK
+        '''
         survey_to_delete = get_object_or_404(Survey, pk=pk, user=request.user)
         
         if not request.user:
@@ -176,6 +240,28 @@ class SurveyUpdate(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request, pk):
+        '''
+            설문조사 수정내용을 확인하는 API
+
+            ---
+            # 내용
+                -survey: {
+                -    id": 설문조사 PK
+                -    title: 설문조사 제목
+                -    intro: 설문조사 설명
+                -    created_at: 설문조사 작성시간
+                -    updated_at: 설문조사 수정시간
+                -    enddated_at: 설문조사 종료시간
+                -    is_done: 설문조사 활성화상태
+                -    views: 설문조사 조회수 
+                -    user: 설문조사 작성한 유저
+                -    category: 설문조사 카테고리
+                -    tags: 설문조사 태그
+                -}
+                -categories: 카테고리 내용
+                -questions: 설문조사 질문 예시답변 내용
+                -tags: 태그 내용
+        '''
         try:
             survey = Survey.objects.select_related('category', 'user').prefetch_related('question_set__answeroption_set').get(pk=pk)
         except ObjectDoesNotExist:
@@ -203,7 +289,6 @@ class SurveyUpdate(APIView):
         categories = Category.objects.all()
 
         data = {
-            "survey_id": pk,
             "survey": SurveySerializer(survey).data,
             "categories": CategorySerializer(categories, many=True).data,
             "questions": serialized_questions,
@@ -213,6 +298,19 @@ class SurveyUpdate(APIView):
         return Response(data)
     
     def post(self, request, pk):
+        '''
+            설문조사를 수정하는 API
+
+            ---
+            # Parameters
+                -title : 설문조사 제목
+                -intro : 설문조사 설명
+                -is_done : 설문조사 활성화상태
+                -enddated_at : 설문조사 종료시간
+                -questions : 설문조사 내용
+                -category : 카테고리 내용
+                -tags : 태그 내용
+        '''
         tags_data = request.data.get('tags')
             
         if tags_data:
@@ -268,6 +366,16 @@ class SurveyResult(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request, pk):
+        '''
+            설문조사의 답변 결과를 불러오는 API
+
+            ---
+            # Parameters
+                -question_qnum : 질문 순서
+                -question_text : 질문 내용
+                -answer_text : 답변내용
+                -count : 답변 갯수
+        '''
         try:
             questions = Question.objects.filter(survey_id=pk)
             result = []
@@ -308,8 +416,16 @@ class SurveyResult(APIView):
 
 class UserAnswerView(APIView):
     permission_classes = [IsAuthenticated]
-
+    
     def post(self, request):
+        '''
+            설문조사의 답변을 저장하는 API
+
+            ---
+            # Parameters
+                -survey_id : 설문조사 ID
+                -answers : 설문조사 답변내용들
+        '''
         # Authenticating the user
         user = request.user
         if not user:
