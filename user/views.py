@@ -29,7 +29,8 @@ class LogoutView(APIView):
     def post(self, request):
         try:
             refresh_token = request.data['refresh']
-            access_token = request.data['access']
+            access_token = request.META.get(
+                'HTTP_AUTHORIZATION').split(' ')[-1]
             ref_token = RefreshToken(refresh_token)
             acc_token = AccessToken(access_token)
             ref_token.blacklist()
