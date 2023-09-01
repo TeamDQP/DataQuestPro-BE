@@ -22,14 +22,16 @@ class IndexMain(APIView):
 
     def get(self, request):
         category = request.query_params.get('category')
-        surveys = Survey.objects.all().select_related('category', 'user')
+        surveys = Survey.objects.all().select_related('category', 'user').order_by('-created_at','is_done')
 
         if category and category != 'all':
             surveys = surveys.filter(category__id=category)
 
         categories = Category.objects.all()
         processed_surveys = []
+        
         for survey in surveys:
+            useranswer = UserAnswer.objects.filter(survey=survey, user=request.user)
             processed_survey = {
                 'id': survey.id,
                 'user': survey.user.email,
@@ -41,17 +43,17 @@ class IndexMain(APIView):
                 'category': survey.category.name if survey.category else '',
                 'tags': [tag.name for tag in survey.tags.all()],
                 'views': survey.views,
-                'owner': 'true' if request.user.email == survey.user.email else 'false',
+                'owner': True if request.user.email == survey.user.email else False,
+                'useranswer': True if useranswer else False,
             }
             processed_surveys.append(processed_survey)
-
+        
         category_serializer = CategorySerializer(categories, many=True)
 
         data = {
             'surveys': processed_surveys,
             'categories': category_serializer.data
         }
-
         return Response(data, status=status.HTTP_200_OK)
     
 
