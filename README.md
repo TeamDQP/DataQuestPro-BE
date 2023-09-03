@@ -108,9 +108,9 @@ DataQuestPro는 설문조사 참여 및 관리 플랫폼 서비스입니다.
 
 ![survey_create](./README/gifs/survey_create.gif)
 
--   ㅇ
+-   생성한 설문조사 수정
 
-![](./README/gifs/)
+![survey_update](./README/gifs/survey_update.gif)
 
 -   설문조사 참여
 
@@ -120,17 +120,17 @@ DataQuestPro는 설문조사 참여 및 관리 플랫폼 서비스입니다.
 
 ![survey_result](./README/gifs/survey_result.gif)
 
--   ㅇ
+-   제출한 설문조사 답변 수정(재응답)
 
-![](./README/gifs/)
+![survey_answer_update](./README/gifs/survey_answer_update.gif)
 
--   ㅇ
+-   s
 
-![](./README/gifs/)
+![survey_update_submit](./README/gifs/survey_update_submit.gif)
 
--   ㅇ
+-   생성한 설문조사 삭제
 
-![](./README/gifs/)
+![survey_delete](./README/gifs/survey_delete.gif)
 
 ### 👤 프로필
 
