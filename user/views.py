@@ -11,7 +11,18 @@ User = get_user_model()
 
 
 class RegisterView(APIView):
+
     def post(self, request):
+        '''
+            회원가입을 위한 데이터를 저장하는 API
+
+        ---
+        # 내용
+            - email : 가입시 회원의 email, username 대신 email을 사용
+            - password : 가입시 회원의 비밀번호
+            - name : 가입할 회원의 성명
+
+        '''
         serializer = UserSerializer(data=request.data)
         if serializer.is_valid(raise_exception=True):
             serializer.save()
