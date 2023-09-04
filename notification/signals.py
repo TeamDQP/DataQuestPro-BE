@@ -8,6 +8,7 @@ from django.core.files import File
 from user.models import Profile
 
 User = get_user_model()
+domain = '15.164.56.233'
 
 @receiver(post_save, sender=User)
 def send_verification_email(sender, instance, created, **kwargs):
@@ -21,7 +22,6 @@ def send_verification_email(sender, instance, created, **kwargs):
                 use_tls=settings.EMAIL_USE_TLS
         ) as connection:
 
-            domain = '15.164.56.233'
             verification_link = f'http://{domain}/user/verify/{instance.pk}'
             email = EmailMessage(
                 subject='Email Verification for Your Account',
@@ -106,8 +106,8 @@ def survey_close_email(sender, instance, **kwargs):
                 else:
                     continue
             email = EmailMessage(
-                subject=instance.title + 'is done',
-                body='zz',
+                subject=instance.title + ' is done',
+                body=f'Please check the result:\nhttp://{domain}:8000/html/survey_result.html?id={instance.pk}',
                 from_email=settings.EMAIL_HOST_USER,
                 to=list(targets),
                 connection=connection)
