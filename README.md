@@ -51,7 +51,7 @@
 -   **테스트:**
     ![Postman](https://img.shields.io/badge/Postman-FF6C37?style=for-the-badge&logo=postman&logoColor=white)
 
--   개발 환경
+-   **개발 환경**
 
     -   Python: 3.10.11
     -   PostgreSQL: 15.4
@@ -69,7 +69,7 @@
         uWSGI==2.0.22
         ```
 
-## 📊 ERD (이미지 첨부)
+## 📊 ERD
 
 ![ERD Image](./README/ERD.png)
 
@@ -141,6 +141,10 @@ Swagger 캡쳐 📸
 -   생성한 설문조사 삭제
 
 ![survey_delete](./README/gifs/survey_delete.gif)
+
+-   설문조사 생성 시 알림 메시지 이메일 전송
+
+![survey_create_email](./README/gifs/survey_create_email.gif)
 
 -   설문조사 완료 시 결과 확인 메시지 이메일 전송
 
