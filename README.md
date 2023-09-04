@@ -5,18 +5,15 @@
 -   [백엔드 배포 링크](http://15.164.56.233:80)
 -   [프론트엔드 배포 링크](http://15.164.56.233:8000)
 -   테스트용 계정 🧪
+
     ```
     이메일: test@dqp.com
     비밀번호: test1
     ```
 
----
-
 ## 📝 프로젝트 목적 및 개요
 
 DataQuestPro는 설문조사 참여 및 관리 플랫폼 서비스입니다.
-
----
 
 ## 👥 참여 인원
 
@@ -26,13 +23,9 @@ DataQuestPro는 설문조사 참여 및 관리 플랫폼 서비스입니다.
 -   👨‍💻 양진우 - 담당 업무
 -   👨‍💻 최익준 - 담당 업무
 
----
-
 ## ⏳ 프로젝트 진행 기간
 
 -   2023년 8월 17일부터 9월 1일까지 (약 2주간)
-
----
 
 ## 💻 기술 및 개발환경
 
@@ -53,13 +46,9 @@ DataQuestPro는 설문조사 참여 및 관리 플랫폼 서비스입니다.
 -   **테스트:**
     ![Postman](https://img.shields.io/badge/Postman-FF6C37?style=for-the-badge&logo=postman&logoColor=white)
 
----
-
 ## 📊 ERD (이미지 첨부)
 
 ![ERD Image](./README/ERD.png)
-
----
 
 ## 📄 API 명세서
 
@@ -67,8 +56,6 @@ DataQuestPro는 설문조사 참여 및 관리 플랫폼 서비스입니다.
 <summary>Swagger 캡쳐 📸</summary>
 
 </details>
-
----
 
 ## 🎥 구현 (GIFs)
 
@@ -120,11 +107,11 @@ DataQuestPro는 설문조사 참여 및 관리 플랫폼 서비스입니다.
 
 ![survey_result](./README/gifs/survey_result.gif)
 
--   제출한 설문조사 답변 수정(재응답)
+-   제출한 설문조사 답변 수정
 
 ![survey_answer_update](./README/gifs/survey_answer_update.gif)
 
--   s
+-   참여한 설문조사 재응답
 
 ![survey_update_submit](./README/gifs/survey_update_submit.gif)
 
@@ -136,8 +123,6 @@ DataQuestPro는 설문조사 참여 및 관리 플랫폼 서비스입니다.
 
 ![](./README/gifs/)
 ![](./README/gifs/)
-
----
 
 ## 🛠️ 발생한 이슈 및 해결 방안 (트러블슈팅)
 
@@ -161,8 +146,6 @@ DataQuestPro는 설문조사 참여 및 관리 플랫폼 서비스입니다.
 
 > (해결 방안 설명)
 
----
-
 ## 🙌 후기
 
 -   권순세
@@ -184,7 +167,5 @@ DataQuestPro는 설문조사 참여 및 관리 플랫폼 서비스입니다.
 -   최익준
 
     > (후기)
-
----
 
 ## 📚 참고자료
