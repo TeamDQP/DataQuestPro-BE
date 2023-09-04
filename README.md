@@ -73,6 +73,10 @@
 
 ![ERD Image](./README/ERD.png)
 
+## 아키텍쳐
+
+![dqp.drawio](./README/dqp.drawio.png)
+
 ## 📄 API 명세서
 
 Swagger 캡쳐 📸
